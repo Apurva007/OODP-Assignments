@@ -15,6 +15,7 @@ public class StudentRecord
         Operations newOperations = new Operations();
         Scanner inputChoice = new Scanner(System.in);
         System.out.println("Welcome to Student Record");
+        //This Loop provides an Interactive feel to the Program.
         while(infiniteLoop)
         {
             System.out.println("1. Add a new student.");
@@ -44,11 +45,11 @@ public class StudentRecord
                 case 5:
                     System.exit(0);
                 default:
-                    System.exit(0);
+                    System.out.println("Incorrect Choice. Enter Again");
+                    break;
             }
         }
     }
-
 }
 
 class StudentInformation
@@ -58,6 +59,7 @@ class StudentInformation
     protected float studentGPA;
     protected StudentInformation nextStudent;
     protected StudentInformation previousStudent;
+
     protected void storeInformation(String studentName,int redId,float studentGPA)
     {
         this.studentName = studentName;
@@ -72,9 +74,17 @@ class Operations
 {
     private String studentName;
     private int redId;
-    private float gpa;
-    private StudentInformation head = null;
-    private StudentInformation tail = null;
+    private float studentGPA;
+    private int remainingStudents;
+    private int studentCountOnProbation;
+    private StudentInformation studentListOrigin = null;
+    private StudentInformation studentListEnd = null;
+    private int redIdStartLimit = 99999999;
+    private int redIdEndLimit = 1000000000;
+    private int studentCountWithCentGrade;
+    private double minimumGPA = 0.0;
+    private double maximumGPA = 4.0;
+    private double probationGrade = 2.85;
 
     public void addStudent()
     {
@@ -98,9 +108,10 @@ class Operations
         }
         System.out.println("Enter the Student Red ID");
         redId = newInput.nextInt();
+        //Checks if the RedId is 9 digits.
         try
         {
-            if(redId > 1000000000 || redId < 99999999)
+            if(redId > redIdEndLimit || redId < redIdStartLimit)
                 throw new IndexOutOfBoundsException();
         }
         catch(IndexOutOfBoundsException indexError)
@@ -109,13 +120,14 @@ class Operations
             {
                 System.out.println("RedId is not Valid.RedId should be of 9 digits.Enter Again");
                 redId = newInput.nextInt();
-            }while(redId > 1000000000 || redId < 99999999);
+            }while(redId > redIdEndLimit || redId < redIdStartLimit);
         }
         System.out.println("Enter the Student GPA till 2 decimals");
-        gpa = newInput.nextFloat();
+        studentGPA = newInput.nextFloat();
+        //Checks if GPA is out of 4.0 grade.
         try
         {
-            if(gpa < 0.0 || gpa > 4.0)
+            if(studentGPA < minimumGPA || studentGPA > maximumGPA)
                 throw new IndexOutOfBoundsException();
         }
         catch(IndexOutOfBoundsException indexError)
@@ -123,42 +135,47 @@ class Operations
             do
             {
                 System.out.println("Invalid GPA.GPA should be between 0.0 and 4.0.Enter Again");
-                gpa = newInput.nextFloat();
-            }while(gpa < 0.0 || gpa > 4.0);
+                studentGPA = newInput.nextFloat();
+            }while(studentGPA < minimumGPA || studentGPA > maximumGPA);
         }
-        newStudent.storeInformation(studentName, redId, gpa);
-        if(head == null)
+        newStudent.storeInformation(studentName, redId, studentGPA);
+        //Condition checks if the List is empty. If true then the student object is added to start of list.
+        if(studentListOrigin == null)
         {
             newStudent.nextStudent = null;
             newStudent.previousStudent = null;
-            head = newStudent;
-            tail = newStudent;
+            studentListOrigin = newStudent;
+            studentListEnd = newStudent;
         }
         else
         {
-            currentStudent = head;
+            currentStudent = studentListOrigin;
+            // Loop to traverse the list till a name is found who is lexicographically more or till end of list.
             while((newStudent.studentName.compareTo(currentStudent.studentName
             )>0) && currentStudent.nextStudent != null)
             {
                 currentStudent = currentStudent.nextStudent;
 
             }
-            if(currentStudent == head && newStudent.studentName.compareTo(currentStudent.studentName
+            //Checks if new student name lexicographically precedes the student name at start of list.
+            if(currentStudent == studentListOrigin && newStudent.studentName.compareTo(currentStudent.studentName
             )<0)
             {
                 newStudent.previousStudent = null;
                 newStudent.nextStudent = currentStudent;
                 currentStudent.previousStudent = newStudent;
-                head = newStudent;
+                studentListOrigin = newStudent;
             }
+            //Checks if new student name is lexicographically more than the student name at end of list.
             else if(currentStudent.nextStudent == null && newStudent.studentName.compareTo(currentStudent.studentName
             )>0)
             {
-                tail = newStudent;
+                studentListEnd = newStudent;
                 newStudent.nextStudent = null;
                 newStudent.previousStudent = currentStudent;
                 currentStudent.nextStudent = newStudent;
             }
+            //Checks if the new student name is between two student names in a list.
             else if(newStudent.studentName.compareTo(currentStudent.studentName)<0)
             {
                 newStudent.nextStudent = currentStudent;
@@ -171,12 +188,13 @@ class Operations
 
     public void printStudentName(int studentIndex)
     {
-        int remainingStudents = studentIndex;
-        StudentInformation currentStudent = head;
+        remainingStudents = studentIndex;
+        StudentInformation currentStudent = studentListOrigin;
         if (currentStudent == null)
             System.out.println("The List of Students is Empty");
         else
         {
+            //Checks if the list index specified has any students present in the list or is invalid.
             try
             {
                 while (remainingStudents != 0)
@@ -202,8 +220,9 @@ class Operations
     public void printStudentList()
     {
         StudentInformation currentStudent;
-        currentStudent = head;
+        currentStudent = studentListOrigin;
         System.out.println("The Current Student List:");
+        //Checks if there is only one student on the list.
         if(currentStudent.nextStudent == null)
             System.out.println(currentStudent.studentName);
         else
@@ -219,17 +238,18 @@ class Operations
 
     public void printProbationList()
     {
-        int studentCountOnProbation = 0;
+        studentCountOnProbation = 0;
         StudentInformation currentStudent;
-        currentStudent = head;
+        currentStudent = studentListOrigin;
         if(currentStudent == null)
             System.out.println("Student Record is Empty");
         else
         {
             System.out.println("Red Id of students on probation:");
+            //This loop helps traverse the list from front to back printing student names with GPA below 2.85.
             while(currentStudent != null)
             {
-                if(currentStudent.studentGPA < 2.85)
+                if(currentStudent.studentGPA < probationGrade)
                 {
                     System.out.println(currentStudent.redId);
                     studentCountOnProbation++;
@@ -243,23 +263,24 @@ class Operations
 
     public void printCentGPAStudents()
     {
-        int studentCountGPA4 = 0;
-        StudentInformation currentStudent = tail;
+        studentCountWithCentGrade = 0;
+        StudentInformation currentStudent = studentListEnd;
         if(currentStudent == null)
             System.out.println("Student Record is Empty");
         else
         {
             System.out.println("Name of students with GPA 4.0:");
+            //This Loop traverses from back to front of the list printing student names with GPA 4.0.
             while(currentStudent != null)
             {
                 if(currentStudent.studentGPA == 4.00)
                 {
                     System.out.println(currentStudent.studentName);
-                    studentCountGPA4++;
+                    studentCountWithCentGrade++;
                 }
                 currentStudent = currentStudent.previousStudent;
             }
-            if(studentCountGPA4 == 0)
+            if(studentCountWithCentGrade == 0)
                 System.out.println("No Students have GPA 4.0");
         }
     }
